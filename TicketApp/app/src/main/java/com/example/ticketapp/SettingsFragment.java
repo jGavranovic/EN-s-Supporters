@@ -1,12 +1,16 @@
 package com.example.ticketapp;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+
 import androidx.fragment.app.Fragment;
+
+import com.example.ticketapp.auth.AuthService;
 
 public class SettingsFragment extends Fragment {
 
@@ -19,23 +23,29 @@ public class SettingsFragment extends Fragment {
         
         // GUEST 
         if (userSession.isGuest()) {
-            authButton.setText("Login");
-            authButton.setOnClickListener(v -> {
-                Intent intent = new Intent(getActivity(), LoginActivity.class);
-                startActivity(intent);
-                getActivity().finish();
-            });
+            authButton.setText(R.string.login);
+            authButton.setOnClickListener(v -> openLoginAndFinishHost());
         } else {
             // USER or ADMIN
-            authButton.setText("Logout");
+            authButton.setText(R.string.logout);
             authButton.setOnClickListener(v -> {
+                AuthService.getAuthApi().logout();
                 userSession.logout();
-                Intent intent = new Intent(getActivity(), LoginActivity.class);
-                startActivity(intent);
-                getActivity().finish();
+                openLoginAndFinishHost();
             });
         }
         
         return view;
+    }
+
+    private void openLoginAndFinishHost() {
+        Activity activity = getActivity();
+        if (activity == null) {
+            return;
+        }
+
+        Intent intent = new Intent(activity, LoginActivity.class);
+        startActivity(intent);
+        activity.finish();
     }
 }
