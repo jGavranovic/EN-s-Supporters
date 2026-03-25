@@ -1,23 +1,15 @@
-<!--suppress AndroidMissingAutofillHints -->
-<!--suppress AndroidLintAutofill -->
-<!--suppress AndroidDomInspection -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="Autofill,AndroidMissingAutofillHints"
-    android:autofillHints="notApplicable"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:importantForAutofill="noExcludeDescendants"
     android:orientation="vertical"
     android:padding="24dp"
-    android:gravity="center_horizontal"
-    >
+    android:gravity="center_horizontal">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/app_name"
+        android:text="TicketHub"
         android:textSize="32sp"
         android:textStyle="bold"
         android:layout_marginBottom="175dp"/>
@@ -33,7 +25,7 @@
             android:id="@+id/loginTabButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/login"
+            android:text="Login"
             android:paddingLeft="24dp"
             android:paddingRight="24dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
@@ -42,7 +34,7 @@
             android:id="@+id/createAccountTabButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/create_account"
+            android:text="Create Account"
             android:paddingLeft="24dp"
             android:paddingRight="24dp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
@@ -50,134 +42,102 @@
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
     <Space
-        android:autofillHints="notApplicable"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="0.5"/>
 
     <LinearLayout
         android:id="@+id/formContainer"
-        android:autofillHints="notApplicable"
-        android:importantForAutofill="noExcludeDescendants"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <LinearLayout
             android:id="@+id/loginForm"
-            android:autofillHints="notApplicable"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:visibility="visible"
-            tools:ignore="Autofill">
+            android:visibility="visible">
 
             <EditText
-                android:id="@+id/loginIdentifier"
-                android:autofillHints="emailAddress,phone"
+                android:id="@+id/loginEmailOrPhone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/email_or_phone_number"
-                android:importantForAutofill="yes"
-                android:inputType="textEmailAddress"
-                android:layout_marginBottom="16dp"
-                tools:ignore="Autofill"/>
+                android:hint="Email or Phone Number"
+                android:layout_marginBottom="16dp"/>
 
             <EditText
                 android:id="@+id/loginPassword"
-                android:autofillHints="password"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/password"
-                android:importantForAutofill="yes"
+                android:hint="Password"
                 android:inputType="textPassword"
                 android:layout_marginBottom="24dp"/>
 
             <Button
                 android:id="@+id/loginButton"
-                android:autofillHints="notApplicable"
-                android:importantForAutofill="no"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/login"
+                android:text="Login"
                 android:layout_marginBottom="12dp"/>
 
             <Button
                 android:id="@+id/guestButton"
-                android:autofillHints="notApplicable"
-                android:importantForAutofill="no"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/continue_as_guest"/>
+                android:text="Continue as Guest"/>
 
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/createAccountForm"
-            android:autofillHints="notApplicable"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:importantForAutofill="no"
             android:orientation="vertical"
-            android:visibility="gone"
-            tools:ignore="Autofill">
+            android:visibility="gone">
 
             <EditText
                 android:id="@+id/createName"
-                android:autofillHints="name"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/full_name"
-                android:importantForAutofill="yes"
-                android:inputType="textPersonName"
-                android:layout_marginBottom="16dp"
-                tools:ignore="Autofill"/>
+                android:hint="Full Name"
+                android:layout_marginBottom="16dp"/>
 
             <EditText
                 android:id="@+id/createEmail"
-                android:autofillHints="emailAddress"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/email"
-                android:importantForAutofill="yes"
+                android:hint="Email"
                 android:inputType="textEmailAddress"
-                android:layout_marginBottom="16dp"
-                tools:ignore="Autofill"/>
+                android:layout_marginBottom="16dp"/>
 
             <EditText
                 android:id="@+id/createPhoneNumber"
-                android:autofillHints="phone"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/phone_number"
-                android:importantForAutofill="yes"
+                android:hint="Phone Number"
                 android:inputType="phone"
-                android:layout_marginBottom="16dp"
-                tools:ignore="Autofill"/>
+                android:layout_marginBottom="16dp"/>
 
             <EditText
                 android:id="@+id/createPassword"
-                android:autofillHints="newPassword"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/password"
-                android:importantForAutofill="yes"
+                android:hint="Password"
                 android:inputType="textPassword"
                 android:layout_marginBottom="24dp"/>
 
             <Button
                 android:id="@+id/createAccountButton"
-                android:importantForAutofill="no"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/create_account"/>
+                android:text="Create Account"/>
 
         </LinearLayout>
 
     </LinearLayout>
 
     <Space
-        android:autofillHints="notApplicable"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"/>

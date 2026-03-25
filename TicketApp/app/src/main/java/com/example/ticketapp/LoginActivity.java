@@ -2,46 +2,45 @@ package com.example.ticketapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Toast;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.button.MaterialButtonToggleGroup;
 
-import com.example.ticketapp.auth.AuthApi;
-import com.example.ticketapp.auth.AuthService;
 public class LoginActivity extends AppCompatActivity {
 
-    private Button loginButton;
-    private Button guestButton;
-    private Button createAccountButton;
-    private LinearLayout loginForm;
-    private LinearLayout createAccountForm;
+    MaterialButtonToggleGroup toggleButtonGroup;
+    Button loginTabButton;
+    Button createAccountTabButton;
+    Button loginButton;
+    Button guestButton;
+    Button createAccountButton;
+    LinearLayout loginForm;
+    LinearLayout createAccountForm;
 
-    private EditText loginIdentifier;
-    private EditText loginPassword;
-    private EditText createName;
-    private EditText createEmail;
-    private EditText createPhoneNumber;
-    private EditText createPassword;
-
-    private AuthApi authApi;
+    EditText loginEmailOrPhone;
+    EditText loginPassword;
+    EditText createName;
+    EditText createEmail;
+    EditText createPhoneNumber;
+    EditText createPassword;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        authApi = AuthService.getAuthApi();
-
         // Initialize toggle group
-        com.google.android.material.button.MaterialButtonToggleGroup toggleButtonGroup = findViewById(R.id.toggleButtonGroup);
+        toggleButtonGroup = findViewById(R.id.toggleButtonGroup);
+        loginTabButton = findViewById(R.id.loginTabButton);
+        createAccountTabButton = findViewById(R.id.createAccountTabButton);
 
         // Initialize login form elements
         loginForm = findViewById(R.id.loginForm);
-        loginIdentifier = findViewById(R.id.loginIdentifier);
+        loginEmailOrPhone = findViewById(R.id.loginEmailOrPhone);
         loginPassword = findViewById(R.id.loginPassword);
         loginButton = findViewById(R.id.loginButton);
         guestButton = findViewById(R.id.guestButton);
@@ -69,8 +68,7 @@ public class LoginActivity extends AppCompatActivity {
 
         loginButton.setOnClickListener(v -> handleLogin());
         guestButton.setOnClickListener(v -> {
-            // Keep existing behavior: guest mode currently maps to USER role in this project.
-            UserSession.getInstance().logout();
+            // change user ROLE here to see different views according to ROLE
             UserSession.getInstance().setUserType(UserSession.UserType.USER);
             openHome();
         });
@@ -88,12 +86,12 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void handleLogin() {
-        String emailOrPhone = loginIdentifier.getText().toString().trim();
+        String emailOrPhone = loginEmailOrPhone.getText().toString().trim();
         String password = loginPassword.getText().toString().trim();
 
         if (emailOrPhone.isEmpty()) {
-            loginIdentifier.setError("Email or phone is required");
-            loginIdentifier.requestFocus();
+            loginEmailOrPhone.setError("Email or phone is required");
+            loginEmailOrPhone.requestFocus();
             return;
         }
         if (password.isEmpty()) {
@@ -102,24 +100,9 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        setAuthButtonsEnabled(false);
-        authApi.login(emailOrPhone, password, response -> runOnUiThread(() -> {
-            setAuthButtonsEnabled(true);
-            if (response.succeeded()) {
-                UserSession.getInstance().setAuthenticatedUser(response.getUser(), response.getJwtToken());
-                openHome();
-                return;
-            }
-
-            Toast.makeText(this, response.getMessage(), Toast.LENGTH_SHORT).show();
-            if (response.getMessage().toLowerCase().contains("password")) {
-                loginPassword.setError(response.getMessage());
-                loginPassword.requestFocus();
-            } else {
-                loginIdentifier.setError(response.getMessage());
-                loginIdentifier.requestFocus();
-            }
-        }));
+        // TODO: authenticate user
+        UserSession.getInstance().setUserType(UserSession.UserType.USER);
+        openHome();
     }
 
     private void handleCreateAccount() {
@@ -148,42 +131,12 @@ public class LoginActivity extends AppCompatActivity {
             createPassword.requestFocus();
             return;
         }
+        
+        // TODO: Call account creation API
 
-        setAuthButtonsEnabled(false);
-        authApi.register(name, email, phoneNumber, password, response -> runOnUiThread(() -> {
-            setAuthButtonsEnabled(true);
-            if (response.succeeded()) {
-                UserSession.getInstance().setAuthenticatedUser(response.getUser(), response.getJwtToken());
-                openHome();
-                return;
-            }
-
-            Toast.makeText(this, response.getMessage(), Toast.LENGTH_SHORT).show();
-            applyCreateAccountError(response.getMessage());
-        }));
-    }
-
-    private void setAuthButtonsEnabled(boolean enabled) {
-        loginButton.setEnabled(enabled);
-        guestButton.setEnabled(enabled);
-        createAccountButton.setEnabled(enabled);
-    }
-
-    private void applyCreateAccountError(String message) {
-        String lowerMessage = message.toLowerCase();
-        if (lowerMessage.contains("name")) {
-            createName.setError(message);
-            createName.requestFocus();
-        } else if (lowerMessage.contains("email")) {
-            createEmail.setError(message);
-            createEmail.requestFocus();
-        } else if (lowerMessage.contains("phone")) {
-            createPhoneNumber.setError(message);
-            createPhoneNumber.requestFocus();
-        } else if (lowerMessage.contains("password")) {
-            createPassword.setError(message);
-            createPassword.requestFocus();
-        }
+        // After account creation, set user as regular user
+        UserSession.getInstance().setUserType(UserSession.UserType.USER);
+        openHome();
     }
 
     private void openHome() {

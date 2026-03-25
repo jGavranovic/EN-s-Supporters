@@ -1,8 +1,5 @@
 package com.example.ticketapp;
 
-import com.example.ticketapp.model.User;
-
-@SuppressWarnings("unused")
 public class UserSession {
     
     public enum UserType {
@@ -13,8 +10,6 @@ public class UserSession {
     
     private static UserSession instance;
     private UserType currentUserType;
-    private User currentUser;
-    private String jwtToken;
     
     private UserSession() {
         this.currentUserType = UserType.GUEST;
@@ -31,21 +26,16 @@ public class UserSession {
     public void setUserType(UserType userType) {
         this.currentUserType = userType;
     }
-
-    public void setAuthenticatedUser(User user, String token) {
-        this.currentUser = user;
-        this.jwtToken = token;
-        if (user != null) {
-            this.currentUserType = user.getUserType();
-        }
-    }
-
     public boolean isGuest() {
         return currentUserType == UserType.GUEST;
     }
+    public boolean isUser() {
+        return currentUserType == UserType.USER;
+    }
+    public boolean isAdmin() {
+        return currentUserType == UserType.ADMIN;
+    }
     public void logout() {
         this.currentUserType = UserType.GUEST;
-        this.currentUser = null;
-        this.jwtToken = null;
     }
 }

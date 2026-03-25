@@ -1,6 +1,5 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.googleServices)
 }
 
 android {
@@ -37,9 +36,6 @@ android {
 dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
-    implementation(platform(libs.firebaseBom))
-    implementation(libs.firebaseAuth)
-    implementation(libs.firebaseFirestore)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
