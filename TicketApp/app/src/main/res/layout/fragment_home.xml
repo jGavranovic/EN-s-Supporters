@@ -14,20 +14,51 @@
         android:gravity="center"
         android:layout_marginBottom="24dp"/>
 
-    <EditText
-        android:id="@+id/searchBar"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:hint="Search events..."
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="@drawable/search_bar_background"
-        android:layout_marginBottom="16dp"/>
+        android:orientation="horizontal"
+        android:layout_marginBottom="16dp">
+
+        <Spinner
+            android:id="@+id/searchTypeSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:spinnerMode="dropdown"
+            android:layout_marginEnd="8dp"/>
+
+        <EditText
+            android:id="@+id/searchBar"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="match_parent"
+            android:hint="Search events..."
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="@drawable/search_bar_background"/>
+    </LinearLayout>
 
     <Button
         android:id="@+id/searchButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Search"/>
+        android:text="Search"
+        android:layout_marginBottom="16dp"/>
+    
+    <TextView
+        android:id="@+id/noEventsText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No events found"
+        android:visibility="gone"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:layout_gravity="center"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/eventsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
 
 </LinearLayout>
