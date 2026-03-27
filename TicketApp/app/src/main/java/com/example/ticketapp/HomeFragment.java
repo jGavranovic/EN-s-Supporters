@@ -34,6 +34,8 @@ public class HomeFragment extends Fragment {
     private List<Event> filteredList;
     private FirebaseFirestore db;
     private TextView noEventsText;
+    private String currentQuery = "";
+    private String currentType = "All";
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -84,19 +86,13 @@ public class HomeFragment extends Fragment {
             public void onNothingSelected(AdapterView<?> parent) {
             }
         });
-    
+
         searchButton.setOnClickListener(v -> {
-            String query = searchBar.getText().toString().trim();
+            currentQuery = searchBar.getText().toString().trim();
             Object selected = searchTypeSpinner.getSelectedItem();
-            String type = (selected != null) ? selected.toString() : "All";
-    
-            if (query.isEmpty()) {
-                filteredList.clear();
-                filteredList.addAll(eventList);
-                adapter.notifyDataSetChanged();
-            } else {
-                filterEvents(query, type);
-            }
+            currentType = (selected != null) ? selected.toString() : "All";
+        
+            applyCurrentFilter();
         });
     
         searchBar.addTextChangedListener(new TextWatcher() {
@@ -147,25 +143,34 @@ public class HomeFragment extends Fragment {
 
     private void loadEvents() {
         db.collection("events")
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
+        .addSnapshotListener((value, error) -> {
+            if (error != null) {
+                noEventsText.setText("Error fetching events");
+                noEventsText.setVisibility(View.VISIBLE);
+                return;
+            }
                         eventList.clear();
                         long nowMillis = System.currentTimeMillis();
-                        for (QueryDocumentSnapshot doc : task.getResult()) {
+                        for (QueryDocumentSnapshot doc : value) {
                             Event event = doc.toObject(Event.class);
                             if (event.getDate().toDate().getTime() >= nowMillis) {
                                 eventList.add(event);
                             }
                         }
-                        filteredList.clear();
-                        filteredList.addAll(eventList);
-                        adapter.notifyDataSetChanged();
-                    } else {
-                        noEventsText.setText("Error fetching events");
-                        noEventsText.setVisibility(View.VISIBLE);
-                    }
-                });
+                        applyCurrentFilter();
+                    });
+    }
+    private void applyCurrentFilter() {
+        if (currentQuery.isEmpty()) {
+            filteredList.clear();
+            filteredList.addAll(eventList);
+        } else {
+            filterEvents(currentQuery, currentType);
+            return;
+        }
+    
+        noEventsText.setVisibility(filteredList.isEmpty() ? View.VISIBLE : View.GONE);
+        adapter.notifyDataSetChanged();
     }
 
     private void filterEvents(String query, String type) {
