@@ -18,9 +18,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
+import java.text.SimpleDateFormat;
 import java.util.Locale;
 import java.util.Calendar;
-import java.text.SimpleDateFormat;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.example.ticketapp.adapters.EventAdapter;
@@ -162,7 +162,8 @@ public class HomeFragment extends Fragment {
                         filteredList.addAll(eventList);
                         adapter.notifyDataSetChanged();
                     } else {
-                        Toast.makeText(getContext(), "Error fetching events", Toast.LENGTH_SHORT).show();
+                        noEventsText.setText("Error fetching events");
+                        noEventsText.setVisibility(View.VISIBLE);
                     }
                 });
     }
