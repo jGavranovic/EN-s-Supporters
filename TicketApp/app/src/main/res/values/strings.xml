@@ -1,3 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TicketHub</string>
+
+    <string-array name="search_types">
+        <item>All</item>
+        <item>Category</item>
+        <item>Date</item>
+        <item>Location</item>
+    </string-array>
 </resources>
