@@ -19,5 +19,21 @@
         android:textSize="18sp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"/>
+        android:layout_gravity="center"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:id="@+id/noTicketsText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No tickets reserved yet"
+        android:layout_gravity="center"
+        android:layout_marginBottom="12dp"
+        android:visibility="gone"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/myTicketsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
 </LinearLayout>
