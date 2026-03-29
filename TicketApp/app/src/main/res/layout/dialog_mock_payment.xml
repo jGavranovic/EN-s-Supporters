@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cardholder Name"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/paymentCardholderName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Jane Doe"
+            android:inputType="textPersonName"
+            android:layout_marginBottom="10dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Card Number"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/paymentCardNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="4242 4242 4242 4242"
+            android:inputType="number"
+            android:layout_marginBottom="10dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Expiry (MM/YY)"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/paymentExpiry"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="12/30"
+                    android:inputType="text" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CVV"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/paymentCvv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="123"
+                    android:inputType="numberPassword" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Confirmation Delivery"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/notificationChannelGroup"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="8dp">
+
+            <RadioButton
+                android:id="@+id/channelEmail"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Email" />
+
+            <RadioButton
+                android:id="@+id/channelSms"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SMS"
+                android:layout_marginStart="16dp" />
+        </RadioGroup>
+
+        <EditText
+            android:id="@+id/notificationDestination"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Email address or phone number"
+            android:inputType="textEmailAddress"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/paymentSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="13sp"
+            android:textColor="@android:color/darker_gray" />
+
+    </LinearLayout>
+</ScrollView>
