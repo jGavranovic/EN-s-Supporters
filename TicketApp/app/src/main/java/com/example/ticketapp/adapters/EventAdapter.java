@@ -3,6 +3,7 @@ package com.example.ticketapp.adapters;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
 import com.example.ticketapp.R;
@@ -10,11 +11,27 @@ import com.example.ticketapp.models.Event;
 import java.util.List;
 import java.text.SimpleDateFormat;
 import java.util.Locale;
+import java.util.Set;
 
 public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHolder> {
-    private List<Event> events;
+    public interface OnReserveClickListener {
+        void onReserveClick(Event event);
+    }
 
-    public EventAdapter(List<Event> events) { this.events = events; }
+    private List<Event> events;
+    private final OnReserveClickListener reserveClickListener;
+    private Set<String> reservingEventIds;
+    private Set<String> reservedEventIds;
+
+    public EventAdapter(List<Event> events, OnReserveClickListener reserveClickListener) {
+        this.events = events;
+        this.reserveClickListener = reserveClickListener;
+    }
+
+    public void setReservationState(Set<String> reservingEventIds, Set<String> reservedEventIds) {
+        this.reservingEventIds = reservingEventIds;
+        this.reservedEventIds = reservedEventIds;
+    }
 
     @Override
     public EventViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -34,6 +51,33 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
         holder.location.setText(event.getVenue() + ", " + event.getCity());
         holder.category.setText(event.getCategory());
         holder.price.setText(String.format("$%.2f", event.getPrice()));
+
+        boolean isReserving = event.getId() != null
+                && reservingEventIds != null
+                && reservingEventIds.contains(event.getId());
+        boolean isReserved = event.getId() != null
+                && reservedEventIds != null
+                && reservedEventIds.contains(event.getId());
+
+        if (isReserving) {
+            holder.reserveButton.setEnabled(false);
+            holder.reserveButton.setText("Reserving...");
+        } else if (isReserved) {
+            holder.reserveButton.setEnabled(false);
+            holder.reserveButton.setText("Reserved");
+        } else {
+            holder.reserveButton.setEnabled(true);
+            holder.reserveButton.setText("Reserve");
+        }
+
+        View.OnClickListener reserveAction = v -> {
+            if (reserveClickListener != null && !isReserving && !isReserved) {
+                reserveClickListener.onReserveClick(event);
+            }
+        };
+
+        holder.reserveButton.setOnClickListener(reserveAction);
+        holder.itemView.setOnClickListener(reserveAction);
     }
 
     @Override
@@ -41,6 +85,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
 
     static class EventViewHolder extends RecyclerView.ViewHolder {
         TextView title, date, location, category, price;
+        Button reserveButton;
         EventViewHolder(View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.eventTitle);
@@ -48,6 +93,7 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.EventViewHol
             location = itemView.findViewById(R.id.eventLocation);
             category = itemView.findViewById(R.id.eventCategory);
             price = itemView.findViewById(R.id.eventPrice);
+            reserveButton = itemView.findViewById(R.id.reserveButton);
         }
     }
 }

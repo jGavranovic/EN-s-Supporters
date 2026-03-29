@@ -68,8 +68,9 @@ public class LoginActivity extends AppCompatActivity {
 
         loginButton.setOnClickListener(v -> handleLogin());
         guestButton.setOnClickListener(v -> {
-            // change user ROLE here to see different views according to ROLE
-            UserSession.getInstance().setUserType(UserSession.UserType.USER);
+            UserSession session = UserSession.getInstance();
+            session.setUserType(UserSession.UserType.USER);
+            session.setIdentity("", "EMAIL");
             openHome();
         });
         createAccountButton.setOnClickListener(v -> handleCreateAccount());
@@ -100,8 +101,10 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // TODO: authenticate user
-        UserSession.getInstance().setUserType(UserSession.UserType.USER);
+        String channel = emailOrPhone.contains("@") ? "EMAIL" : "SMS";
+        UserSession session = UserSession.getInstance();
+        session.setUserType(UserSession.UserType.USER);
+        session.setIdentity(emailOrPhone, channel);
         openHome();
     }
 
@@ -134,8 +137,9 @@ public class LoginActivity extends AppCompatActivity {
         
         // TODO: Call account creation API
 
-        // After account creation, set user as regular user
-        UserSession.getInstance().setUserType(UserSession.UserType.USER);
+        UserSession session = UserSession.getInstance();
+        session.setUserType(UserSession.UserType.USER);
+        session.setIdentity(email, "EMAIL");
         openHome();
     }
 
