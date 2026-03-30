@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import androidx.fragment.app.Fragment;
 
+import com.google.firebase.auth.FirebaseAuth;
+
 public class SettingsFragment extends Fragment {
 
     @Override
@@ -29,6 +31,7 @@ public class SettingsFragment extends Fragment {
             // USER or ADMIN
             authButton.setText("Logout");
             authButton.setOnClickListener(v -> {
+                FirebaseAuth.getInstance().signOut();
                 userSession.logout();
                 Intent intent = new Intent(getActivity(), LoginActivity.class);
                 startActivity(intent);
