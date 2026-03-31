@@ -197,61 +197,28 @@ public class HomeFragment extends Fragment {
                         applyCurrentFilter();
                     });
     }
+  
     private void applyCurrentFilter() {
+        filteredList.clear();
         if (currentQuery.isEmpty()) {
-            filteredList.clear();
             filteredList.addAll(eventList);
         } else {
-            filterEvents(currentQuery, currentType);
-            return;
+            filteredList.addAll(EventFilter.filter(eventList, currentQuery, currentType));
         }
-    
         noEventsText.setVisibility(filteredList.isEmpty() ? View.VISIBLE : View.GONE);
         adapter.notifyDataSetChanged();
     }
 
     private void filterEvents(String query, String type) {
-        query = query.toLowerCase();
         filteredList.clear();
-        long nowMillis = System.currentTimeMillis();
-
-        for (Event event : eventList) {
-            if (event.getDate().toDate().getTime() < nowMillis) continue;
-            boolean match = false;
+        filteredList.addAll(EventFilter.filter(eventList, query, type));
     
-            if (type.equals("All")) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-                String dateString = sdf.format(event.getDate().toDate());
-                match = event.getTitle().toLowerCase().contains(query)
-                        || event.getCategory().toLowerCase().contains(query)
-                        || event.getVenue().toLowerCase().contains(query)
-                        || event.getCity().toLowerCase().contains(query)
-                        || dateString.toLowerCase().contains(query)
-                        || String.valueOf(event.getPrice()).contains(query);
-            } else {
-                switch (type) {
-                    case "Category":
-                        match = event.getCategory().toLowerCase().contains(query);
-                        break;
-                    case "Date":
-                        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-                        String dateString = sdf.format(event.getDate().toDate());
-                        match = dateString.toLowerCase().contains(query);
-                        break;
-                    case "Location":
-                        match = event.getVenue().toLowerCase().contains(query)
-                                || event.getCity().toLowerCase().contains(query);
-                        break;
-                }
-            }
-            if (match) filteredList.add(event);
-        }
-
         if (filteredList.isEmpty()) {
-            noEventsText.setVisibility(View.VISIBLE); 
+            noEventsText.setVisibility(View.VISIBLE);
         } else {
-            noEventsText.setVisibility(View.GONE);  
+            noEventsText.setVisibility(View.GONE);
         }
+    
         adapter.notifyDataSetChanged();
     }
 
