@@ -9,6 +9,7 @@ public class Event {
     private String category;
     private String city;
     private double price;
+    private int seatsAvailable;
 
     public Event() {}
 
@@ -19,6 +20,7 @@ public class Event {
         this.city = city;
         this.category = category;
         this.price = price;
+        this.seatsAvailable = 0;
     }
 
     public String getId() { return id; }
@@ -41,4 +43,7 @@ public class Event {
     
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public int getSeatsAvailable() { return seatsAvailable; }
+    public void setSeatsAvailable(int seatsAvailable) { this.seatsAvailable = seatsAvailable; }
 }

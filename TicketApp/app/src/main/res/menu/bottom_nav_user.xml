@@ -9,6 +9,10 @@
         android:icon="@drawable/ticket"
         android:title="My Tickets"/>
     <item
+        android:id="@+id/nav_notifications"
+        android:icon="@drawable/event"
+        android:title="Notifications"/>
+    <item
         android:id="@+id/nav_settings"
         android:icon="@drawable/setting"
         android:title="Settings"/>

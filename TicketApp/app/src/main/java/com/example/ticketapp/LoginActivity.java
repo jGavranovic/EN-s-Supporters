@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
@@ -18,8 +19,15 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
+
+    private static final String ADMIN_PASSCODE = "ADMIN2026";
 
     MaterialButtonToggleGroup toggleButtonGroup;
     Button loginTabButton;
@@ -36,8 +44,11 @@ public class LoginActivity extends AppCompatActivity {
     EditText createEmail;
     EditText createPhoneNumber;
     EditText createPassword;
+    CheckBox createAdminCheckbox;
+    EditText createAdminPasscode;
 
     private FirebaseAuth firebaseAuth;
+    private FirebaseFirestore firestore;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +56,7 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
 
         firebaseAuth = FirebaseAuth.getInstance();
+        firestore = FirebaseFirestore.getInstance();
 
         // Initialize toggle group
         toggleButtonGroup = findViewById(R.id.toggleButtonGroup);
@@ -64,7 +76,17 @@ public class LoginActivity extends AppCompatActivity {
         createEmail = findViewById(R.id.createEmail);
         createPhoneNumber = findViewById(R.id.createPhoneNumber);
         createPassword = findViewById(R.id.createPassword);
+        createAdminCheckbox = findViewById(R.id.createAdminCheckbox);
+        createAdminPasscode = findViewById(R.id.createAdminPasscode);
         createAccountButton = findViewById(R.id.createAccountButton);
+
+        createAdminCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            createAdminPasscode.setVisibility(isChecked ? View.VISIBLE : View.GONE);
+            if (!isChecked) {
+                createAdminPasscode.setText("");
+                createAdminPasscode.setError(null);
+            }
+        });
 
         // Set up toggle group listener
         toggleButtonGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -130,8 +152,7 @@ public class LoginActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         FirebaseUser user = firebaseAuth.getCurrentUser();
                         if (user != null && user.getEmail() != null) {
-                            applyAuthenticatedSession(user.getEmail());
-                            openHome();
+                            loadRoleAndOpenHome(user);
                             return;
                         }
 
@@ -151,6 +172,8 @@ public class LoginActivity extends AppCompatActivity {
         String email = createEmail.getText().toString().trim();
         String phoneNumber = createPhoneNumber.getText().toString().trim();
         String password = createPassword.getText().toString().trim();
+        boolean createAsAdmin = createAdminCheckbox.isChecked();
+        String adminPasscode = createAdminPasscode.getText().toString().trim();
 
         if (name.isEmpty()) {
             createName.setError("Name is required");
@@ -177,11 +200,15 @@ public class LoginActivity extends AppCompatActivity {
             createPassword.requestFocus();
             return;
         }
+        if (createAsAdmin && !ADMIN_PASSCODE.equals(adminPasscode)) {
+            createAdminPasscode.setError("Invalid admin passcode");
+            createAdminPasscode.requestFocus();
+            return;
+        }
 
         setAuthUiEnabled(false);
         firebaseAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
-                    setAuthUiEnabled(true);
                     if (task.isSuccessful()) {
                         FirebaseUser user = firebaseAuth.getCurrentUser();
                         if (user != null) {
@@ -191,26 +218,83 @@ public class LoginActivity extends AppCompatActivity {
                             user.updateProfile(updates);
 
                             if (user.getEmail() != null) {
-                                applyAuthenticatedSession(user.getEmail());
-                                openHome();
+                                String role = createAsAdmin ? "ADMIN" : "USER";
+                                saveUserProfile(user.getUid(), name, user.getEmail(), phoneNumber, role, success -> {
+                                    setAuthUiEnabled(true);
+                                    if (success) {
+                                        applyAuthenticatedSession(user.getEmail(), role);
+                                        openHome();
+                                        return;
+                                    }
+
+                                    createPassword.setError("Account was created, but role setup failed");
+                                    Toast.makeText(LoginActivity.this, "Please log in again", Toast.LENGTH_LONG).show();
+                                });
                                 return;
                             }
                         }
 
+                        setAuthUiEnabled(true);
                         createPassword.setError("Account created but login state is unavailable");
                         Toast.makeText(LoginActivity.this, "Please try logging in again", Toast.LENGTH_LONG).show();
                         return;
                     }
 
+                    setAuthUiEnabled(true);
                     String errorMessage = getFriendlyAuthError(task.getException(), true);
                     createPassword.setError(errorMessage);
                     Toast.makeText(LoginActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                 });
     }
 
-    private void applyAuthenticatedSession(String email) {
+    private void loadRoleAndOpenHome(FirebaseUser user) {
+        firestore.collection("users")
+                .document(user.getUid())
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    String role = "USER";
+                    if (snapshot.exists()) {
+                        String storedRole = snapshot.getString("role");
+                        if (storedRole != null && storedRole.trim().equalsIgnoreCase("ADMIN")) {
+                            role = "ADMIN";
+                        }
+                    }
+
+                    applyAuthenticatedSession(user.getEmail(), role);
+                    openHome();
+                })
+                .addOnFailureListener(e -> {
+                    applyAuthenticatedSession(user.getEmail(), "USER");
+                    openHome();
+                });
+    }
+
+    private interface ProfileSaveCallback {
+        void onComplete(boolean success);
+    }
+
+    private void saveUserProfile(String uid, String name, String email, String phoneNumber, String role, ProfileSaveCallback callback) {
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("name", name);
+        userData.put("email", email);
+        userData.put("phoneNumber", phoneNumber);
+        userData.put("role", role);
+        userData.put("updatedAt", FieldValue.serverTimestamp());
+
+        firestore.collection("users")
+                .document(uid)
+                .set(userData)
+                .addOnSuccessListener(unused -> callback.onComplete(true))
+                .addOnFailureListener(e -> callback.onComplete(false));
+    }
+
+    private void applyAuthenticatedSession(String email, String role) {
         UserSession session = UserSession.getInstance();
-        session.setUserType(UserSession.UserType.USER);
+        if (role != null && role.equalsIgnoreCase("ADMIN")) {
+            session.setUserType(UserSession.UserType.ADMIN);
+        } else {
+            session.setUserType(UserSession.UserType.USER);
+        }
         session.setIdentity(email, "EMAIL");
     }
 
@@ -220,6 +304,8 @@ public class LoginActivity extends AppCompatActivity {
         createAccountButton.setEnabled(enabled);
         loginTabButton.setEnabled(enabled);
         createAccountTabButton.setEnabled(enabled);
+        createAdminCheckbox.setEnabled(enabled);
+        createAdminPasscode.setEnabled(enabled);
     }
 
     private String getFriendlyAuthError(Exception exception, boolean creatingAccount) {

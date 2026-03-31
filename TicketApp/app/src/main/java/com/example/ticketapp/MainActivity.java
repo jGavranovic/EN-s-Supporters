@@ -50,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
                 fragment = new HomeFragment();
             } else if (item.getItemId() == R.id.nav_tickets) {
                 fragment = new MyTicketsFragment();
+            } else if (item.getItemId() == R.id.nav_notifications) {
+                fragment = new NotificationsFragment();
             } else if (item.getItemId() == R.id.nav_manage_events) {
                 fragment = new ManageEventsFragment();
             } else if (item.getItemId() == R.id.nav_settings) {

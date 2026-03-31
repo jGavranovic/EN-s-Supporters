@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/adminEventTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Event title"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/adminEventDate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2026-04-10 19:00"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/adminEventLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Venue, City"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/adminEventCategory"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Category: Music"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/adminEventPrice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Price: $50.00"
+            android:layout_marginTop="4dp" />
+
+        <TextView
+            android:id="@+id/adminEventSeats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Seats available: 100"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="10dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/adminEditEventButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Edit" />
+
+            <Button
+                android:id="@+id/adminDeleteEventButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                android:text="Delete" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>
