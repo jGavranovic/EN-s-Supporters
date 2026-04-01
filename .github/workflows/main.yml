@@ -27,8 +27,13 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
+          
+      # 3. Add google-services.json from secret
+      - name: Add Firebase config
+        run: |
+          echo "${{ secrets.FIREBASE_JSON }}" > app/google-services.json
 
-      # 3. Run Gradle build & tests
+      # 4. Run Gradle build & tests
       - name: Build with Gradle
         run: ./gradlew build
 
