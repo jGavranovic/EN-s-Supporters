@@ -2,7 +2,6 @@ package com.example.ticketapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Patterns;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -14,9 +13,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthException;
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
-import com.google.firebase.auth.FirebaseAuthUserCollisionException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.UserProfileChangeRequest;
 import com.google.firebase.firestore.FieldValue;
@@ -26,8 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class LoginActivity extends AppCompatActivity {
-
-    private static final String ADMIN_PASSCODE = "ADMIN2026";
 
     MaterialButtonToggleGroup toggleButtonGroup;
     Button loginTabButton;
@@ -125,19 +119,15 @@ public class LoginActivity extends AppCompatActivity {
         String email = loginEmailOrPhone.getText().toString().trim();
         String password = loginPassword.getText().toString().trim();
 
-        if (email.isEmpty()) {
-            loginEmailOrPhone.setError("Email is required");
-            loginEmailOrPhone.requestFocus();
-            return;
-        }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            loginEmailOrPhone.setError("Enter a valid email");
-            loginEmailOrPhone.requestFocus();
-            return;
-        }
-        if (password.isEmpty()) {
-            loginPassword.setError("Password is required");
-            loginPassword.requestFocus();
+        LoginAuthLogic.ValidationError validationError = LoginAuthLogic.validateLoginInputs(email, password);
+        if (validationError != null) {
+            if (validationError.getField() == LoginAuthLogic.InputField.LOGIN_PASSWORD) {
+                loginPassword.setError(validationError.getMessage());
+                loginPassword.requestFocus();
+            } else {
+                loginEmailOrPhone.setError(validationError.getMessage());
+                loginEmailOrPhone.requestFocus();
+            }
             return;
         }
 
@@ -175,34 +165,33 @@ public class LoginActivity extends AppCompatActivity {
         boolean createAsAdmin = createAdminCheckbox.isChecked();
         String adminPasscode = createAdminPasscode.getText().toString().trim();
 
-        if (name.isEmpty()) {
-            createName.setError("Name is required");
-            createName.requestFocus();
-            return;
-        }
-        if (email.isEmpty()) {
-            createEmail.setError("Email is required");
-            createEmail.requestFocus();
-            return;
-        }
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            createEmail.setError("Enter a valid email");
-            createEmail.requestFocus();
-            return;
-        }
-        if (phoneNumber.isEmpty()) {
-            createPhoneNumber.setError("Phone number is required");
-            createPhoneNumber.requestFocus();
-            return;
-        }
-        if (password.isEmpty()) {
-            createPassword.setError("Password is required");
-            createPassword.requestFocus();
-            return;
-        }
-        if (createAsAdmin && !ADMIN_PASSCODE.equals(adminPasscode)) {
-            createAdminPasscode.setError("Invalid admin passcode");
-            createAdminPasscode.requestFocus();
+        LoginAuthLogic.ValidationError validationError = LoginAuthLogic.validateCreateAccountInputs(
+                name, email, phoneNumber, password, createAsAdmin, adminPasscode);
+        if (validationError != null) {
+            switch (validationError.getField()) {
+                case CREATE_NAME:
+                    createName.setError(validationError.getMessage());
+                    createName.requestFocus();
+                    break;
+                case CREATE_EMAIL:
+                    createEmail.setError(validationError.getMessage());
+                    createEmail.requestFocus();
+                    break;
+                case CREATE_PHONE:
+                    createPhoneNumber.setError(validationError.getMessage());
+                    createPhoneNumber.requestFocus();
+                    break;
+                case CREATE_PASSWORD:
+                    createPassword.setError(validationError.getMessage());
+                    createPassword.requestFocus();
+                    break;
+                case CREATE_ADMIN_PASSCODE:
+                    createAdminPasscode.setError(validationError.getMessage());
+                    createAdminPasscode.requestFocus();
+                    break;
+                default:
+                    break;
+            }
             return;
         }
 
@@ -252,13 +241,7 @@ public class LoginActivity extends AppCompatActivity {
                 .document(user.getUid())
                 .get()
                 .addOnSuccessListener(snapshot -> {
-                    String role = "USER";
-                    if (snapshot.exists()) {
-                        String storedRole = snapshot.getString("role");
-                        if (storedRole != null && storedRole.trim().equalsIgnoreCase("ADMIN")) {
-                            role = "ADMIN";
-                        }
-                    }
+                    String role = snapshot.exists() ? LoginAuthLogic.resolveRole(snapshot.getString("role")) : "USER";
 
                     applyAuthenticatedSession(user.getEmail(), role);
                     openHome();
@@ -309,28 +292,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private String getFriendlyAuthError(Exception exception, boolean creatingAccount) {
-        if (exception instanceof FirebaseAuthUserCollisionException) {
-            return "An account with this email already exists";
-        }
-        if (exception instanceof FirebaseAuthInvalidCredentialsException) {
-            return creatingAccount ? "Please use a valid email and password" : "Email or password is incorrect";
-        }
-        if (exception instanceof FirebaseAuthException) {
-            String code = ((FirebaseAuthException) exception).getErrorCode();
-            if ("ERROR_WEAK_PASSWORD".equals(code)) {
-                return "Password must be at least 6 characters";
-            }
-            if ("ERROR_USER_NOT_FOUND".equals(code)) {
-                return "No account found for this email";
-            }
-            if ("ERROR_WRONG_PASSWORD".equals(code)) {
-                return "Email or password is incorrect";
-            }
-            if ("ERROR_INVALID_EMAIL".equals(code)) {
-                return "Please enter a valid email";
-            }
-        }
-        return creatingAccount ? "Could not create account right now" : "Could not log in right now";
+        return LoginAuthLogic.getFriendlyAuthError(exception, creatingAccount);
     }
 
     private void openHome() {
