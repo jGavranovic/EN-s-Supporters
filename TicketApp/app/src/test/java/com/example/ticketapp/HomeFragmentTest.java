@@ -3,16 +3,19 @@ package com.example.ticketapp;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.app.AlertDialog;
+import android.os.Looper;
 import android.widget.AdapterView;
 import android.widget.DatePicker;
 import android.widget.EditText;
@@ -22,8 +25,10 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.view.View;
+import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -655,6 +660,315 @@ public class HomeFragmentTest {
         assertEquals(View.VISIBLE, noEventsText.getVisibility());
     }
 
+    @Test
+    public void onNothingSelected_andSearchButtonClickPaths_areCovered() throws Exception {
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+        Spinner spinner = requireViewField(fragment, R.id.searchTypeSpinner, Spinner.class);
+        EditText searchBar = requireViewField(fragment, R.id.searchBar, EditText.class);
+        Button searchButton = requireViewField(fragment, R.id.searchButton, Button.class);
+
+        AdapterView.OnItemSelectedListener listener = spinner.getOnItemSelectedListener();
+        assertNotNull(listener);
+        listener.onNothingSelected(mock(AdapterView.class));
+
+        searchBar.setText("music");
+        searchButton.performClick();
+        assertEquals("music", getField(fragment, "currentQuery"));
+        assertNotNull(getField(fragment, "currentType"));
+
+        spinner.setAdapter(new android.widget.ArrayAdapter<>(ApplicationProvider.getApplicationContext(), android.R.layout.simple_spinner_item, new ArrayList<>()));
+        searchButton.performClick();
+        assertEquals("All", getField(fragment, "currentType"));
+
+        AdapterView<?> parent = mock(AdapterView.class);
+        when(parent.getItemAtPosition(0)).thenReturn("Date");
+        listener.onItemSelected(parent, null, 0, 0L);
+        searchBar.performClick();
+        assertNotNull(ShadowAlertDialog.getLatestAlertDialog());
+    }
+
+    @Test
+    public void loadEventsError_andFilterNonEmptyBranch_areCovered() throws Exception {
+        AtomicReference<EventListener<QuerySnapshot>> eventsListenerRef = new AtomicReference<>();
+        HomeFragment fragment = launchHomeFragment(eventsListenerRef);
+        TextView noEventsText = (TextView) getField(fragment, "noEventsText");
+
+        EventListener<QuerySnapshot> listener = eventsListenerRef.get();
+        assertNotNull(listener);
+        listener.onEvent(null, mock(FirebaseFirestoreException.class));
+        assertEquals("Error fetching events", noEventsText.getText().toString());
+        assertEquals(View.VISIBLE, noEventsText.getVisibility());
+
+        @SuppressWarnings("unchecked")
+        List<Event> eventList = (List<Event>) getField(fragment, "eventList");
+        eventList.clear();
+        Event event = sampleEvent("filter-1");
+        event.setCategory("Music");
+        eventList.add(event);
+
+        invokeFilterEvents(fragment, "Music", "Category");
+        assertEquals(View.GONE, noEventsText.getVisibility());
+    }
+
+    @Test
+    public void handleReserveClick_nullContextAndNullEventBranches_areCovered() throws Exception {
+        HomeFragment detached = new HomeFragment();
+        invokeHandleReserveClick(detached, sampleEvent("x"));
+
+        HomeFragment attached = launchHomeFragment(new AtomicReference<>());
+        UserSession.getInstance().setUserType(UserSession.UserType.USER);
+        invokeHandleReserveClick(attached, null);
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+        assertEquals("Unavailable", Shadows.shadowOf(dialog).getTitle());
+    }
+
+    @Test
+    public void handleReserveClick_smsPreference_andDialogListeners_areCovered() throws Exception {
+        UserSession session = UserSession.getInstance();
+        session.setUserType(UserSession.UserType.USER);
+        session.setIdentity("5551231234", "SMS");
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+
+        invokeHandleReserveClick(fragment, sampleEvent("event-dialog"));
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+
+        RadioGroup channelGroup = dialog.findViewById(R.id.notificationChannelGroup);
+        EditText destination = dialog.findViewById(R.id.notificationDestination);
+        assertEquals(R.id.channelSms, channelGroup.getCheckedRadioButtonId());
+        assertEquals("5551231234", destination.getText().toString());
+
+        channelGroup.check(R.id.channelEmail);
+        assertEquals("Email address", String.valueOf(destination.getHint()));
+        channelGroup.check(R.id.channelSms);
+        assertEquals("Phone number", String.valueOf(destination.getHint()));
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertNotNull(dialog.getButton(AlertDialog.BUTTON_NEGATIVE));
+    }
+
+    @Test
+    public void checkoutOnShow_andPayButtonNaturalFlow_areCovered() throws Exception {
+        UserSession session = UserSession.getInstance();
+        session.setUserType(UserSession.UserType.USER);
+        session.setIdentity("", "EMAIL");
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+
+        invokeHandleReserveClick(fragment, sampleEvent("event-natural-pay"));
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        EditText destination = dialog.findViewById(R.id.notificationDestination);
+        destination.setText("");
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertNotNull(destination.getError());
+    }
+
+    @Test
+    public void setupMockPaymentInputFormatting_truncatesLongInputs() throws Exception {
+        HomeFragment fragment = new HomeFragment();
+        EditText card = new EditText(ApplicationProvider.getApplicationContext());
+        EditText expiry = new EditText(ApplicationProvider.getApplicationContext());
+
+        Method method = HomeFragment.class.getDeclaredMethod("setupMockPaymentInputFormatting", EditText.class, EditText.class);
+        method.setAccessible(true);
+        method.invoke(fragment, card, expiry);
+
+        card.setText("1234567890123456789012345");
+        expiry.setText("123456");
+
+        assertTrue(card.getText().toString().replace(" ", "").length() <= 19);
+        assertTrue(expiry.getText().toString().replace("/", "").length() <= 4);
+    }
+
+    @Test
+    public void processReservation_earlyReturnBranches_areCovered() throws Exception {
+        MockPaymentGateway.PaymentRequest request = new MockPaymentGateway.PaymentRequest("A", "4242 4242 4242 4242", "12/30", "123");
+
+        HomeFragment detached = new HomeFragment();
+        invokeProcessReservation(detached, sampleEvent("ctx-null"), request, "EMAIL", "a@b.com");
+
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+        UserSession.getInstance().setUserType(UserSession.UserType.GUEST);
+        invokeProcessReservation(fragment, sampleEvent("guest"), request, "EMAIL", "a@b.com");
+        assertEquals("Login Required", Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle());
+
+        UserSession.getInstance().setUserType(UserSession.UserType.USER);
+        invokeProcessReservation(fragment, null, request, "EMAIL", "a@b.com");
+        assertEquals("Unavailable", Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle());
+
+        Event duplicate = sampleEvent("dup-1");
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> reserving = (java.util.Set<String>) getField(fragment, "reservingEventIds");
+        reserving.add("dup-1");
+
+        MockPaymentGateway gateway = mock(MockPaymentGateway.class);
+        setField(fragment, "paymentGateway", gateway);
+        invokeProcessReservation(fragment, duplicate, request, "EMAIL", "a@b.com");
+        verify(gateway, never()).processPayment(any(), any(), any());
+    }
+
+    @Test
+    public void processReservation_failureCallbacks_areCovered() throws Exception {
+        UserSession session = UserSession.getInstance();
+        session.setUserType(UserSession.UserType.USER);
+        session.setIdentity("buyer@example.com", "EMAIL");
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+
+        BookingService bookingService = mock(BookingService.class);
+        MockPaymentGateway paymentGateway = mock(MockPaymentGateway.class);
+        MockNotificationService notificationService = mock(MockNotificationService.class);
+        setField(fragment, "bookingService", bookingService);
+        setField(fragment, "paymentGateway", paymentGateway);
+        setField(fragment, "notificationService", notificationService);
+
+        Event event = sampleEvent("failure-flow");
+        MockPaymentGateway.PaymentRequest request = new MockPaymentGateway.PaymentRequest("Buyer", "4242 4242 4242 4242", "12/30", "123");
+
+        doAnswer(invocation -> {
+            MockPaymentGateway.PaymentCallback callback = invocation.getArgument(2);
+            callback.onFailure("card declined");
+            return null;
+        }).when(paymentGateway).processPayment(eq(event), eq(request), any(MockPaymentGateway.PaymentCallback.class));
+        invokeProcessReservation(fragment, event, request, "EMAIL", "buyer@example.com");
+        assertEquals("Payment Failed", Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle());
+
+        doAnswer(invocation -> {
+            MockPaymentGateway.PaymentCallback callback = invocation.getArgument(2);
+            callback.onSuccess("VISA", "PAY-1", "approved");
+            return null;
+        }).when(paymentGateway).processPayment(eq(event), eq(request), any(MockPaymentGateway.PaymentCallback.class));
+        doAnswer(invocation -> {
+            BookingService.ReservationCallback callback = invocation.getArgument(6);
+            callback.onError("reservation failed");
+            return null;
+        }).when(bookingService).reserveTicket(any(), anyString(), anyString(), anyString(), anyString(), anyString(), any(BookingService.ReservationCallback.class));
+        invokeProcessReservation(fragment, event, request, "EMAIL", "buyer@example.com");
+        assertEquals("Reservation Failed", Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle());
+
+        doAnswer(invocation -> {
+            BookingService.ReservationCallback callback = invocation.getArgument(6);
+            Booking booking = new Booking();
+            booking.setId("b-1");
+            callback.onSuccess(booking);
+            return null;
+        }).when(bookingService).reserveTicket(any(), anyString(), anyString(), anyString(), anyString(), anyString(), any(BookingService.ReservationCallback.class));
+        doAnswer(invocation -> {
+            MockNotificationService.NotificationCallback callback = invocation.getArgument(3);
+            callback.onFailure("notify failed");
+            return null;
+        }).when(notificationService).sendBookingConfirmation(any(Booking.class), anyString(), anyString(), any(MockNotificationService.NotificationCallback.class));
+        invokeProcessReservation(fragment, event, request, "EMAIL", "buyer@example.com");
+        assertEquals("Notification Failed", Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle());
+    }
+
+    @Test
+    public void startReservedBookingsListener_updateAndErrorBranches_areCovered() throws Exception {
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+        BookingService bookingService = mock(BookingService.class);
+        setField(fragment, "bookingService", bookingService);
+
+        UserSession.getInstance().setUserType(UserSession.UserType.USER);
+        UserSession.getInstance().setIdentity("user@example.com", "EMAIL");
+
+        AtomicReference<BookingService.BookingsListener> listenerRef = new AtomicReference<>();
+        when(bookingService.listenToUserBookings(anyString(), any())).thenAnswer(invocation -> {
+            listenerRef.set(invocation.getArgument(1));
+            return mock(ListenerRegistration.class);
+        });
+
+        invokeStartReservedBookingsListener(fragment);
+        assertNotNull(listenerRef.get());
+
+        Booking confirmed = new Booking();
+        confirmed.setStatus(Booking.STATUS_CONFIRMED);
+        confirmed.setEventId("ev-1");
+        Booking cancelled = new Booking();
+        cancelled.setStatus(Booking.STATUS_CANCELLED);
+        cancelled.setEventId("ev-2");
+
+        listenerRef.get().onUpdate(Arrays.asList(confirmed, cancelled));
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> reserved = (java.util.Set<String>) getField(fragment, "reservedEventIds");
+        assertTrue(reserved.contains("ev-1"));
+        assertFalse(reserved.contains("ev-2"));
+
+        listenerRef.get().onError("sync failed");
+        assertEquals("Bookings Sync", Shadows.shadowOf(ShadowAlertDialog.getLatestAlertDialog()).getTitle());
+    }
+
+    @Test
+    public void startReservedBookingsListener_guestBranch_andMessageDialogs_areCovered() throws Exception {
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+        UserSession.getInstance().logout();
+
+        @SuppressWarnings("unchecked")
+        java.util.Set<String> reserved = (java.util.Set<String>) getField(fragment, "reservedEventIds");
+        reserved.add("ev-x");
+        invokeStartReservedBookingsListener(fragment);
+        assertTrue(reserved.isEmpty());
+
+        AtomicBoolean actionRan = new AtomicBoolean(false);
+        invokeShowPersistentMessage(fragment, "Reservation Confirmed", "done", true, () -> actionRan.set(true));
+        AlertDialog success = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(success);
+        success.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+        assertTrue(actionRan.get());
+
+        invokeShowPersistentMessage(fragment, "Reservation Confirmed", "done", true, null);
+        AlertDialog successNoAction = ShadowAlertDialog.getLatestAlertDialog();
+        successNoAction.getButton(AlertDialog.BUTTON_NEGATIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+
+        invokeShowPersistentMessage(fragment, "Error", "bad", false, null);
+        AlertDialog failure = ShadowAlertDialog.getLatestAlertDialog();
+        failure.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+    }
+
+    @Test
+    public void showPersistentMessage_andNavigateToMyTickets_nullAndSuccessBranches_areCovered() throws Exception {
+        HomeFragment detached = new HomeFragment();
+        invokeShowPersistentMessage(detached, "x", "y", false, null);
+        invokeNavigateToMyTickets(detached);
+
+        try (MockedStatic<FirebaseFirestore> firestoreStatic = org.mockito.Mockito.mockStatic(FirebaseFirestore.class);
+             MockedStatic<BookingService> bookingStatic = org.mockito.Mockito.mockStatic(BookingService.class)) {
+            FirebaseFirestore firestore = mock(FirebaseFirestore.class);
+            CollectionReference eventsCollection = mock(CollectionReference.class);
+            BookingService bookingService = mock(BookingService.class);
+
+            when(firestore.collection("events")).thenReturn(eventsCollection);
+            when(eventsCollection.addSnapshotListener(any(EventListener.class))).thenReturn(mock(ListenerRegistration.class));
+            when(bookingService.listenToUserBookings(anyString(), any(BookingService.BookingsListener.class))).thenReturn(mock(ListenerRegistration.class));
+            firestoreStatic.when(FirebaseFirestore::getInstance).thenReturn(firestore);
+            bookingStatic.when(BookingService::getInstance).thenReturn(bookingService);
+
+            AppCompatActivity activity = Robolectric.buildActivity(AppCompatActivity.class).setup().get();
+            FrameLayout container = new FrameLayout(activity);
+            container.setId(android.R.id.content);
+            BottomNavigationView nav = new BottomNavigationView(activity);
+            nav.setId(R.id.bottomNavigation);
+            nav.getMenu().add(0, R.id.nav_tickets, 0, "Tickets");
+
+            android.widget.LinearLayout root = new android.widget.LinearLayout(activity);
+            root.setOrientation(android.widget.LinearLayout.VERTICAL);
+            root.addView(container);
+            root.addView(nav);
+            activity.setContentView(root);
+
+            HomeFragment attached = new HomeFragment();
+            activity.getSupportFragmentManager().beginTransaction().replace(android.R.id.content, attached).commitNow();
+            invokeNavigateToMyTickets(attached);
+            assertEquals(R.id.nav_tickets, nav.getSelectedItemId());
+        }
+    }
+
     private HomeFragment launchHomeFragment(AtomicReference<EventListener<QuerySnapshot>> eventsListenerRef) {
         try (MockedStatic<FirebaseFirestore> firestoreStatic = org.mockito.Mockito.mockStatic(FirebaseFirestore.class);
              MockedStatic<BookingService> bookingStatic = org.mockito.Mockito.mockStatic(BookingService.class)) {
@@ -818,6 +1132,99 @@ public class HomeFragmentTest {
         method.setAccessible(true);
         method.invoke(fragment, searchBar);
     }
+
+    private void invokeFilterEvents(HomeFragment fragment, String query, String type) throws Exception {
+        Method method = HomeFragment.class.getDeclaredMethod("filterEvents", String.class, String.class);
+        method.setAccessible(true);
+        method.invoke(fragment, query, type);
+    }
+
+    private void invokeStartReservedBookingsListener(HomeFragment fragment) throws Exception {
+        Method method = HomeFragment.class.getDeclaredMethod("startReservedBookingsListener");
+        method.setAccessible(true);
+        method.invoke(fragment);
+    }
+
+    private void invokeNavigateToMyTickets(HomeFragment fragment) throws Exception {
+        Method method = HomeFragment.class.getDeclaredMethod("navigateToMyTickets");
+        method.setAccessible(true);
+        method.invoke(fragment);
+    }
+
+    @Test
+    public void handleReserveClick_nullSessionDestination_prefillsEmptyDestination() throws Exception {
+        UserSession session = UserSession.getInstance();
+        session.setUserType(UserSession.UserType.USER);
+        session.setIdentity("user@example.com", "EMAIL");
+
+        java.lang.reflect.Field destinationField = UserSession.class.getDeclaredField("contactDestination");
+        destinationField.setAccessible(true);
+        destinationField.set(session, null);
+
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+        invokeHandleReserveClick(fragment, sampleEvent("event-null-destination"));
+
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+        EditText destination = dialog.findViewById(R.id.notificationDestination);
+        assertEquals("", destination.getText().toString());
+    }
+
+    @Test
+    public void reservationConfirmedDialog_positiveButton_executesSuccessActionPath() throws Exception {
+        UserSession session = UserSession.getInstance();
+        session.setUserType(UserSession.UserType.USER);
+        session.setIdentity("buyer@example.com", "EMAIL");
+
+        HomeFragment fragment = launchHomeFragment(new AtomicReference<>());
+        BookingService bookingServiceMock = mock(BookingService.class);
+        MockNotificationService notificationServiceMock = mock(MockNotificationService.class);
+        MockPaymentGateway paymentGatewayMock = mock(MockPaymentGateway.class);
+
+        setField(fragment, "bookingService", bookingServiceMock);
+        setField(fragment, "notificationService", notificationServiceMock);
+        setField(fragment, "paymentGateway", paymentGatewayMock);
+
+        Event event = sampleEvent("event-success-action");
+        MockPaymentGateway.PaymentRequest request = new MockPaymentGateway.PaymentRequest(
+                "Buyer", "4242 4242 4242 4242", "12/30", "123");
+
+        doAnswer(invocation -> {
+            MockPaymentGateway.PaymentCallback callback = invocation.getArgument(2);
+            callback.onSuccess("VISA", "PAY-200", "Approved");
+            return null;
+        }).when(paymentGatewayMock).processPayment(eq(event), eq(request), any(MockPaymentGateway.PaymentCallback.class));
+
+        doAnswer(invocation -> {
+            BookingService.ReservationCallback callback = invocation.getArgument(6);
+            Booking booking = new Booking();
+            booking.setId("booking-200");
+            booking.setConfirmationCode("CONF-200");
+            booking.setPaymentMethod("VISA");
+            booking.setPaymentReference("PAY-200");
+            callback.onSuccess(booking);
+            return null;
+        }).when(bookingServiceMock).reserveTicket(any(), anyString(), anyString(), anyString(), anyString(), anyString(), any(BookingService.ReservationCallback.class));
+
+        doAnswer(invocation -> {
+            MockNotificationService.NotificationCallback callback = invocation.getArgument(3);
+            callback.onSuccess("EMAIL", "buyer@example.com", "sent");
+            return null;
+        }).when(notificationServiceMock).sendBookingConfirmation(any(Booking.class), anyString(), anyString(), any(MockNotificationService.NotificationCallback.class));
+
+        doAnswer(invocation -> {
+            BookingService.UpdateCallback callback = invocation.getArgument(4);
+            callback.onSuccess();
+            return null;
+        }).when(bookingServiceMock).markNotificationSent(anyString(), anyString(), anyString(), anyString(), any(BookingService.UpdateCallback.class));
+
+        invokeProcessReservation(fragment, event, request, "EMAIL", "buyer@example.com");
+        AlertDialog dialog = ShadowAlertDialog.getLatestAlertDialog();
+        assertNotNull(dialog);
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick();
+        Shadows.shadowOf(Looper.getMainLooper()).idle();
+    }
 }
+
 
 
