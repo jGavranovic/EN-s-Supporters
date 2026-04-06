@@ -47,7 +47,7 @@ jobs:
             exit 1
           fi
 
-          python - <<'PY'
+          python <<'PY'
 import xml.etree.ElementTree as ET
 import os
 from pathlib import Path
@@ -75,17 +75,17 @@ summary = [
 with open(Path(__import__('os').environ["GITHUB_STEP_SUMMARY"]), "a", encoding="utf-8") as fh:
     fh.write("\n".join(summary))
 
-color = "#e05d44"
+color = "red"
 if percent >= 90:
-    color = "#4c1"
+    color = "brightgreen"
 elif percent >= 80:
-    color = "#97CA00"
+    color = "green"
 elif percent >= 70:
-    color = "#a4a61d"
+    color = "yellowgreen"
 elif percent >= 60:
-    color = "#dfb317"
+    color = "yellow"
 elif percent >= 50:
-    color = "#fe7d37"
+    color = "orange"
 
 workspace = Path(os.environ["GITHUB_WORKSPACE"])
 badge_dir = workspace / ".github" / "badges"
