@@ -5,7 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.os.Bundle;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.example.ticketapp.UserSession;
 import com.example.ticketapp.models.Booking;
@@ -20,10 +23,13 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.lang.reflect.Field;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,8 +44,13 @@ public class ServiceFlowsIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
+        String emulatorHost = resolveEmulatorHost();
+        int emulatorPort = resolveEmulatorPort();
+        Assume.assumeTrue("Firestore emulator is not reachable at " + emulatorHost + ":" + emulatorPort,
+                isReachable(emulatorHost, emulatorPort));
+
         db = FirebaseFirestore.getInstance();
-        db.useEmulator(resolveEmulatorHost(), 8080);
+        db.useEmulator(emulatorHost, emulatorPort);
         db.setFirestoreSettings(new FirebaseFirestoreSettings.Builder()
                 .setPersistenceEnabled(false)
                 .build());
@@ -51,6 +62,10 @@ public class ServiceFlowsIntegrationTest {
 
     @After
     public void tearDown() throws Exception {
+        if (db == null) {
+            UserSession.getInstance().logout();
+            return;
+        }
         clearCollections();
         resetServiceSingletons();
         UserSession.getInstance().logout();
@@ -271,6 +286,9 @@ public class ServiceFlowsIntegrationTest {
     }
 
     private void clearCollections() throws Exception {
+        if (db == null) {
+            return;
+        }
         deleteAllDocuments("user_notifications");
         deleteAllDocuments("bookings");
         deleteAllDocuments("events");
@@ -298,10 +316,42 @@ public class ServiceFlowsIntegrationTest {
     }
 
     private String resolveEmulatorHost() {
-        String configured = System.getProperty("firestore.emulator.host");
+        String configured = resolveInstrumentationArgument("firestoreEmulatorHost");
+        if (configured == null || configured.trim().isEmpty()) {
+            configured = System.getProperty("firestore.emulator.host");
+        }
         if (configured != null && !configured.trim().isEmpty()) {
             return configured.trim();
         }
         return "10.0.2.2";
+    }
+
+    private int resolveEmulatorPort() {
+        String configured = resolveInstrumentationArgument("firestoreEmulatorPort");
+        if (configured == null || configured.trim().isEmpty()) {
+            configured = System.getProperty("firestore.emulator.port");
+        }
+        if (configured != null && !configured.trim().isEmpty()) {
+            try {
+                return Integer.parseInt(configured.trim());
+            } catch (NumberFormatException ignored) {
+                // Fall through to the default emulator port.
+            }
+        }
+        return 8080;
+    }
+
+    private String resolveInstrumentationArgument(String key) {
+        Bundle arguments = InstrumentationRegistry.getArguments();
+        return arguments != null ? arguments.getString(key) : null;
+    }
+
+    private boolean isReachable(String host, int port) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), 1500);
+            return true;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 }
